@@ -1,0 +1,414 @@
+<HTML>
+<HEAD>
+<TITLE>Win32::Sound - An extension to play with Windows sounds</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<BODY>
+
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#NAME">NAME</A>
+	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
+	<LI><A HREF="#FUNCTIONS">FUNCTIONS</A>
+	<LI><A HREF="#THE_WaveOut_PACKAGE">THE WaveOut PACKAGE</A>
+	<UL>
+
+		<LI><A HREF="#FUNCTIONS">FUNCTIONS</A>
+		<LI><A HREF="#THE_SOUND_FORMAT">THE SOUND FORMAT</A>
+		<LI><A HREF="#EXAMPLE">EXAMPLE</A>
+	</UL>
+
+	<LI><A HREF="#VERSION">VERSION</A>
+	<LI><A HREF="#AUTHOR">AUTHOR</A>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="NAME">NAME</A></H1>
+<P>
+Win32::Sound - An extension to play with Windows sounds
+
+<P>
+<HR>
+<H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
+<P>
+<PRE>    use Win32::Sound;
+    Win32::Sound::Volume('100%');
+    Win32::Sound::Play(&quot;file.wav&quot;);
+    Win32::Sound::Stop();
+    
+    # ...and read on for more fun ;-)
+</PRE>
+<P>
+<HR>
+<H1><A NAME="FUNCTIONS">FUNCTIONS</A></H1>
+<DL>
+<DT><STRONG><A NAME="item_Win32">Win32::Sound::Play(SOUND, [FLAGS])</A></STRONG><DD>
+<P>
+Plays the specified sound: SOUND can the be name of a WAV file or one of
+the following predefined sound names:
+
+<P>
+<PRE>    SystemDefault
+    SystemAsterisk
+    SystemExclamation
+    SystemExit
+    SystemHand
+    SystemQuestion
+    SystemStart
+</PRE>
+<P>
+Additionally, if the named sound could not be found, the function plays the
+system default sound (unless you specify the 
+<A HREF="#item_SND_NODEFAULT">SND_NODEFAULT</A> flag). If no parameters are given, this function stops the sound actually
+playing (see also Win32::Sound::Stop).
+
+<P>
+FLAGS can be a combination of the following constants:
+
+<DL>
+<DT><STRONG><A NAME="item_SND_ASYNC">SND_ASYNC</A></STRONG><DD>
+<P>
+The sound is played asynchronously and the function returns immediately
+after beginning the sound (if this flag is not specified, the sound is
+played synchronously and the function returns when the sound ends).
+
+<DT><STRONG><A NAME="item_SND_LOOP">SND_LOOP</A></STRONG><DD>
+<P>
+The sound plays repeatedly until it is stopped. You must also specify <A HREF="#item_SND_ASYNC">SND_ASYNC</A> flag.
+
+<DT><STRONG><A NAME="item_SND_NODEFAULT">SND_NODEFAULT</A></STRONG><DD>
+<P>
+No default sound is used. If the specified <EM>sound</EM>
+cannot be found, the function returns without playing anything.
+
+<DT><STRONG><A NAME="item_SND_NOSTOP">SND_NOSTOP</A></STRONG><DD>
+<P>
+If a sound is already playing, the function fails. By default, any new call
+to the function will stop previously playing sounds.
+
+</DL>
+<DT><STRONG><A NAME="item_Win32">Win32::Sound::Stop()</A></STRONG><DD>
+<P>
+Stops the sound currently playing.
+
+<DT><STRONG><A NAME="item_Win32">Win32::Sound::Volume()</A></STRONG><DD>
+<P>
+Returns the wave device volume; if called in an array context, returns left
+and right values. Otherwise, returns a single 32 bit value (left in the low
+word, right in the high word). In case of error, returns <CODE>undef</CODE> and sets $!.
+
+<P>
+Examples:
+
+<P>
+<PRE>    ($L, $R) = Win32::Sound::Volume();
+    if( not defined Win32::Sound::Volume() ) {
+        die &quot;Can't get volume: $!&quot;;
+    }
+</PRE>
+<DT><STRONG><A NAME="item_Win32">Win32::Sound::Volume(LEFT, [RIGHT])</A></STRONG><DD>
+<P>
+Sets the wave device volume; if two arguments are given, sets left and
+right channels independently, otherwise sets them both to LEFT (eg.
+RIGHT=LEFT). Values range from 0 to 65535 (0xFFFF), but they can also be
+given as percentage (use a string containing a number followed by a percent
+sign).
+
+<P>
+Returns <CODE>undef</CODE> and sets $! in case of error, a true value if successful.
+
+<P>
+Examples:
+
+<P>
+<PRE>    Win32::Sound::Volume('50%');
+    Win32::Sound::Volume(0xFFFF, 0x7FFF);
+    Win32::Sound::Volume('100%', '50%');
+    Win32::Sound::Volume(0);
+</PRE>
+<DT><STRONG><A NAME="item_Win32">Win32::Sound::Format(filename)</A></STRONG><DD>
+<P>
+Returns information about the specified WAV file format; the array
+contains:
+
+<UL>
+<LI><STRONG><A NAME="item_sample">sample rate (in Hz)</A></STRONG>
+<LI><STRONG><A NAME="item_bits">bits per sample (8 or 16)</A></STRONG>
+<LI><STRONG><A NAME="item_channels">channels (1 for mono, 2 for stereo)</A></STRONG>
+</UL>
+<P>
+Example:
+
+<P>
+<PRE>    ($hz, $bits, $channels) 
+        = Win32::Sound::Format(&quot;file.wav&quot;);
+</PRE>
+<DT><STRONG><A NAME="item_Win32">Win32::Sound::Devices()</A></STRONG><DD>
+<P>
+Returns all the available sound devices; their names contain the type of
+the device (WAVEOUT, WAVEIN, MIDIOUT, MIDIIN, AUX or MIXER) and a
+zero-based ID number: valid devices names are for example:
+
+<P>
+<PRE>    WAVEOUT0
+    WAVEOUT1
+    WAVEIN0
+    MIDIOUT0
+    MIDIIN0
+    AUX0
+    AUX1
+    AUX2
+</PRE>
+<P>
+There are also two special device names, <CODE>WAVE_MAPPER</CODE> and <CODE>MIDI_MAPPER</CODE>
+(the default devices for wave output and midi output).
+
+<P>
+Example:
+
+<P>
+<PRE>    @devices = Win32::Sound::Devices();
+</PRE>
+<DT><STRONG><A NAME="item_Win32">Win32::Sound::DeviceInfo(DEVICE)</A></STRONG><DD>
+<P>
+Returns an associative array of information about the sound device named
+DEVICE (the same format of Win32::Sound::Devices).
+
+<P>
+The content of the array depends on the device type queried. Each device
+type returns <STRONG>at least</STRONG> 
+the following information:
+
+<P>
+<PRE>    manufacturer_id
+    product_id
+    name
+    driver_version
+</PRE>
+<P>
+For additional data refer to the following table:
+
+<P>
+<PRE>    WAVEIN..... formats
+                channels
+    
+    WAVEOUT.... formats
+                channels
+                support
+                
+    MIDIOUT.... technology
+                voices
+                notes
+                channels
+                support
+                
+    AUX........ technology
+                support
+                
+    MIXER...... destinations
+                support
+</PRE>
+<P>
+The meaning of the fields, where not obvious, can be evinced from the
+Microsoft SDK documentation (too long to report here, maybe one day... :-).
+
+<P>
+Example:
+
+<P>
+<PRE>    %info = Win32::Sound::DeviceInfo('WAVE_MAPPER');
+    print &quot;$info{name} version $info{driver_version}\n&quot;;
+</PRE>
+</DL>
+<P>
+<HR>
+<H1><A NAME="THE_WaveOut_PACKAGE">THE WaveOut PACKAGE</A></H1>
+<P>
+Win32::Sound also provides a different, more powerful approach to wave
+audio data with its 
+<CODE>WaveOut</CODE> package. It has methods to load and then play WAV files, with the
+additional feature of specifying the start and end range, so you can play
+only a portion of an audio file.
+
+<P>
+Furthermore, it is possible to load arbitrary binary data to the soundcard
+to let it play and save them back into WAV files; in a few words, you can
+do some sound synthesis work.
+
+<P>
+<HR>
+<H2><A NAME="FUNCTIONS">FUNCTIONS</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_new">new Win32::Sound::WaveOut(FILENAME)</A></STRONG><DD>
+<DT><STRONG>new Win32::Sound::WaveOut(SAMPLERATE, BITS, CHANNELS)</STRONG><DD>
+<DT><STRONG>new Win32::Sound::WaveOut()</STRONG><DD>
+<P>
+This function creates a <CODE>WaveOut</CODE> object; the first form opens the specified wave file (see also <A HREF="#item_Open">Open()</A> ), so you can directly <A HREF="#item_Play">Play()</A> it.
+
+<P>
+The second (and third) form opens the wave output device with the format
+given (or if none given, defaults to 44.1kHz, 16 bits, stereo); to produce
+something audible you can either <A HREF="#item_Open">Open()</A> a wave file or <A HREF="#item_Load">Load()</A> binary data to the soundcard and then <A HREF="#item_Write">Write()</A> it.
+
+<DT><STRONG><A NAME="item_Close">Close()</A></STRONG><DD>
+<P>
+Closes the wave file currently opened.
+
+<DT><STRONG><A NAME="item_CloseDevice">CloseDevice()</A></STRONG><DD>
+<P>
+Closes the wave output device; you can change format and reopen it with <A HREF="#item_OpenDevice">OpenDevice()</A>.
+
+<DT><STRONG><A NAME="item_GetErrorText">GetErrorText(ERROR)</A></STRONG><DD>
+<P>
+Returns the error text associated with the specified ERROR number; note it
+only works for wave-output-specific errors.
+
+<DT><STRONG><A NAME="item_Load">Load(DATA)</A></STRONG><DD>
+<P>
+Loads the DATA buffer in the soundcard. The format of the data buffer
+depends on the format used; for example, with 8 bit mono each sample is one
+character, while with 16 bit stereo each sample is four characters long
+(two 16 bit values for left and right channels). The sample rate defines
+how much samples are in one second of sound. For example, to fit one second
+at 44.1kHz 16 bit stereo your buffer must contain 176400 bytes (44100 * 4).
+
+<DT><STRONG><A NAME="item_Open">Open(FILE)</A></STRONG><DD>
+<P>
+Opens the specified wave FILE.
+
+<DT><STRONG><A NAME="item_OpenDevice">OpenDevice()</A></STRONG><DD>
+<P>
+Opens the wave output device with the current sound format (not needed
+unless you used <A HREF="#item_CloseDevice">CloseDevice()</A>).
+
+<DT><STRONG><A NAME="item_Pause">Pause()</A></STRONG><DD>
+<P>
+Pauses the sound currently playing; use <A HREF="#item_Restart">Restart()</A> to continue playing.
+
+<DT><STRONG><A NAME="item_Play">Play( [FROM, TO] )</A></STRONG><DD>
+<P>
+Plays the opened wave file. You can optionally specify a FROM - TO range,
+where FROM and TO are expressed in samples (or use FROM=0 for the first
+sample and TO=-1 for the last sample). Playback happens always
+asynchronously, eg. in the background.
+
+<DT><STRONG><A NAME="item_Position">Position()</A></STRONG><DD>
+<P>
+Returns the sample number currently playing; note that the play position is
+not zeroed when the sound ends, so you have to call a
+<A HREF="#item_Reset">Reset()</A> between plays to receive the correct position in the current sound.
+
+<DT><STRONG><A NAME="item_Reset">Reset()</A></STRONG><DD>
+<P>
+Stops playing and resets the play position (see <A HREF="#item_Position">Position()</A>).
+
+<DT><STRONG><A NAME="item_Restart">Restart()</A></STRONG><DD>
+<P>
+Continues playing the sound paused by <A HREF="#item_Pause">Pause()</A>.
+
+<DT><STRONG><A NAME="item_Save">Save(FILE, [DATA])</A></STRONG><DD>
+<P>
+Writes the DATA buffer (if not given, uses the buffer currently loaded in
+the soundcard) to the specified wave FILE.
+
+<DT><STRONG><A NAME="item_Status">Status()</A></STRONG><DD>
+<P>
+Returns 0 if the soundcard is currently playing, 1 if it's free, or <CODE>undef</CODE> on errors.
+
+<DT><STRONG><A NAME="item_Unload">Unload()</A></STRONG><DD>
+<P>
+Frees the soundcard from the loaded data.
+
+<DT><STRONG><A NAME="item_Volume">Volume( [LEFT, RIGHT] )</A></STRONG><DD>
+<P>
+Gets or sets the volume for the wave output device. It works the same way
+as Win32::Sound::Volume.
+
+<DT><STRONG><A NAME="item_Write">Write()</A></STRONG><DD>
+<P>
+Plays the data currently loaded in the soundcard; playback happens always
+asynchronously, eg. in the background.
+
+</DL>
+<P>
+<HR>
+<H2><A NAME="THE_SOUND_FORMAT">THE SOUND FORMAT</A></H2>
+<P>
+The sound format is stored in three properties of the <CODE>WaveOut</CODE> object: <CODE>samplerate</CODE>, <CODE>bits</CODE> and
+<CODE>channels</CODE>. If you need to change them without creating a new object, you should
+close before and reopen afterwards the device.
+
+<P>
+<PRE>    $WAV-&gt;CloseDevice();
+    $WAV-&gt;{samplerate} = 44100; # 44.1kHz
+    $WAV-&gt;{bits}       = 8;     # 8 bit
+    $WAV-&gt;{channels}   = 1;     # mono
+    $WAV-&gt;OpenDevice();
+</PRE>
+<P>
+You can also use the properties to query the sound format currently used.
+
+<P>
+<HR>
+<H2><A NAME="EXAMPLE">EXAMPLE</A></H2>
+<P>
+This small example produces a 1 second sinusoidal wave at 440Hz and saves
+it in <EM>sinus.wav</EM>:
+
+<P>
+<PRE>    use Win32::Sound;
+    
+    # Create the object
+    $WAV = new Win32::Sound::WaveOut(44100, 8, 2);
+    
+    $data = &quot;&quot;; 
+    $counter = 0;
+    $increment = 440/44100;
+    
+    # Generate 44100 samples ( = 1 second)
+    for $i (1..44100) {
+</PRE>
+<P>
+<PRE>        # Calculate the pitch 
+        # (range 0..255 for 8 bits)
+        $v = sin($counter/2*3.14) * 128 + 128;    
+</PRE>
+<P>
+<PRE>        # &quot;pack&quot; it twice for left and right
+        $data .= pack(&quot;cc&quot;, $v, $v);
+</PRE>
+<P>
+<PRE>        $counter += $increment;
+    }
+    
+    $WAV-&gt;Load($data);       # get it
+    $WAV-&gt;Write();           # hear it
+    1 until $WAV-&gt;Status();  # wait for completion
+    $WAV-&gt;Save(&quot;sinus.wav&quot;); # write to disk
+    $WAV-&gt;Unload();          # drop it
+</PRE>
+<P>
+<HR>
+<H1><A NAME="VERSION">VERSION</A></H1>
+<P>
+Win32::Sound version 0.45, 09 Apr 1999.
+
+<P>
+<HR>
+<H1><A NAME="AUTHOR">AUTHOR</A></H1>
+<P>
+Aldo Calpini, <CODE>dada@divinf.it</CODE>
+
+
+
+<P>
+Parts of the code provided and/or suggested by Dave Roth.
+
+</BODY>
+
+</HTML>
