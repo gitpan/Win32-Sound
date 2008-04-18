@@ -2,8 +2,8 @@
 #
 # Win32::Sound - An extension to play with Windows sounds
 # 
-# Author: Aldo Calpini <dada@divinf.it>
-# Version: 0.45
+# Author: Aldo Calpini <dada@perl.it>
+# Version: 0.48
 # Info:
 #       http://www.divinf.it/dada/perl
 #       http://www.perl.com/CPAN/authors/Aldo_Calpini
@@ -16,6 +16,15 @@
 #                    (thanks Dave Roth!)
 # 0.40 (16 Mar 1999) added the WaveOut object
 # 0.45 (09 Apr 1999) added $! support, documentation et goodies
+# 0.46 (25 Sep 1999) fixed small bug in DESTROY, wo was used without being
+#		     initialized (Gurusamy Sarathy <gsar@cpan.org>)
+# 0.47 (22 May 2000) support for passing Unicode string to Play()
+#                    (Doug Lankshear <doug@lankshear.net>)
+# 0.48 (16 Apr 2008) uploaded to CPAN separately from libwin32
+#	             updated email addresses
+#                    simplified Makefile.PL
+#	             added META.yml and ppport.h
+#                    renamed test.pl to sample.pl
 
 package Win32::Sound;
 
@@ -43,7 +52,7 @@ sub AUTOLOAD {
     my($constname);
     ($constname = $AUTOLOAD) =~ s/.*:://;
     #reset $! to zero to reset any current errors.
-    $!=0;
+    local $! = 0;
     my $val = constant($constname, @_ ? $_[0] : 0);
     if ($! != 0) {
 
@@ -70,7 +79,7 @@ sub AUTOLOAD {
 #######################################################################
 # STATIC OBJECT PROPERTIES
 #
-$VERSION="0.45"; 
+$VERSION="0.47"; 
 undef unless $VERSION; # [dada] to avoid "possible typo" warning
 
 #######################################################################
@@ -565,11 +574,11 @@ wave at 440Hz and saves it in F<sinus.wav>:
 
 =head1 VERSION
 
-Win32::Sound version 0.45, 09 Apr 1999.
+Win32::Sound version 0.46, 25 Sep 1999.
 
 =head1 AUTHOR
 
-Aldo Calpini, C<dada@divinf.it>
+Aldo Calpini, C<dada@perl.it>
 
 Parts of the code provided and/or suggested by Dave Roth.
 

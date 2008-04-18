@@ -3,7 +3,7 @@
 #
 # Win32::Sound - An extension to play with Windows sounds
 # 
-# Author: Aldo Calpini <dada@divinf.it>
+# Author: Aldo Calpini <dada@perl.it>
 # Version: 0.45 
 # Info:
 #       http://www.divinf.it/dada/perl
@@ -21,6 +21,9 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+
+#include "ppport.h"
+
 // Section for the constant definitions.
 #define CROAK croak
 
@@ -312,15 +315,17 @@ OUTPUT:
 void
 Play(...)
 PPCODE:
-    HANDLE myhandle;
     UINT flag=0; 
     LPCSTR name = NULL;
+    STRLEN n_a;
+
     if (items > 0)
-        name = (LPCSTR)SvPV(ST(0),na);
+        name = (LPCSTR)SvPV(ST(0),n_a);
     if (items > 1)
-        flag = (UINT)SvIV(ST(1));
-    if (sndPlaySound(name, flag))
-        XSRETURN_YES;
+	flag = (UINT)SvIV(ST(1));
+
+    if (sndPlaySoundA(name, flag))
+	XSRETURN_YES;
     else
         XSRETURN_NO;
 
@@ -703,13 +708,13 @@ CODE:
     }    
     tmpsv = hv_fetch(hself, "bits", 4, 0);
     if(tmpsv != NULL) {
-        wavfmt.wBitsPerSample = (DWORD) SvIV(*tmpsv);
+        wavfmt.wBitsPerSample = (WORD) SvIV(*tmpsv);
     } else {
         if(PL_dowarn) warn("Win32::Sound::WaveOut::OpenDevice: invalid format (bits)\n");
     }    
     tmpsv = hv_fetch(hself, "blockalign", 10, 0);
     if(tmpsv != NULL) {
-        wavfmt.nBlockAlign = (DWORD) SvIV(*tmpsv);
+        wavfmt.nBlockAlign = (WORD) SvIV(*tmpsv);
     } else {
         wavfmt.nBlockAlign = wavfmt.nChannels * wavfmt.wBitsPerSample / 8;
     }
@@ -724,8 +729,8 @@ CODE:
         &wo,
         (UINT) id,
         &wavfmt,
-        NULL,
-        NULL,
+        0,
+        0,
         CALLBACK_NULL
     );
     if(RETVAL == MMSYSERR_NOERROR) {
@@ -747,7 +752,7 @@ CODE:
     hself = (HV*) SvRV(self);
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
         RETVAL = waveOutClose(wo);
         WaveOutCheckError(RETVAL);
     } else {
@@ -774,7 +779,7 @@ CODE:
     hself = (HV*) SvRV(self);
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
         wavlength = SvLEN(data);
         hgdata = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, wavlength);
         hv_store(hself, "wavdata", 7, newSViv((long) hgdata), 0);
@@ -809,10 +814,10 @@ CODE:
     hself = (HV*)SvRV(self);
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
         tmpsv = hv_fetch(hself, "wavheadlock", 11, 0);
         if(tmpsv != NULL) {
-            wh = (LPWAVEHDR) SvIV(*tmpsv);
+            wh = INT2PTR(LPWAVEHDR, SvIV(*tmpsv));
             RETVAL = waveOutWrite(wo, wh, sizeof(WAVEHDR));
             WaveOutCheckError(RETVAL);          
         } else {
@@ -835,8 +840,6 @@ PREINIT:
     HV* hself;
     SV** tmpsv;
     HMMIO mmio;
-    HWAVEOUT wo;
-    LPWAVEHDR wh;
     WAVEFORMATEX wavfmt;
     MMCKINFO mmchunk; 
     MMCKINFO mmsubchunk; 
@@ -853,23 +856,23 @@ CODE:
     if(tmpsv != NULL) {
         wavfmt.nChannels = (WORD) SvIV(*tmpsv);
     } else {
-        if(dowarn) warn("WaveOut::Save: invalid format (channels)");
+        if(PL_dowarn) warn("WaveOut::Save: invalid format (channels)");
     }
     tmpsv = hv_fetch(hself, "samplerate", 10, 0);
     if(tmpsv != NULL) {
         wavfmt.nSamplesPerSec = (DWORD) SvIV(*tmpsv);
     } else {
-        if(dowarn) warn("WaveOut::Save: invalid format (samplerate)");
+        if(PL_dowarn) warn("WaveOut::Save: invalid format (samplerate)");
     }
     tmpsv = hv_fetch(hself, "bits", 4, 0);
     if(tmpsv != NULL) {
-        wavfmt.wBitsPerSample = (DWORD) SvIV(*tmpsv);
+        wavfmt.wBitsPerSample = (WORD) SvIV(*tmpsv);
     } else {
-        if(dowarn) warn("WaveOut::Save: invalid format (bits)");
+        if(PL_dowarn) warn("WaveOut::Save: invalid format (bits)");
     }
     tmpsv = hv_fetch(hself, "blockalign", 10, 0);
     if(tmpsv != NULL) {
-        wavfmt.nBlockAlign = (DWORD) SvIV(*tmpsv);
+        wavfmt.nBlockAlign = (WORD) SvIV(*tmpsv);
     } else {
         wavfmt.nBlockAlign = wavfmt.nChannels * wavfmt.wBitsPerSample / 8;
     }
@@ -890,7 +893,7 @@ CODE:
     } else {
         tmpsv = hv_fetch(hself, "wavdatalock", 11, 0);
         if(tmpsv != NULL) {
-            buffer = (char _huge*) SvIV(*tmpsv);
+            buffer = INT2PTR(char _huge*, SvIV(*tmpsv));
             bufferlen = (LONG) GlobalSize((HGLOBAL) buffer);
             printf("XS(WaveOut::Save): loaded bufferlen=%ld\n", bufferlen);
         } else {
@@ -944,10 +947,10 @@ CODE:
     hself = (HV*)SvRV(self);
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
         tmpsv = hv_fetch(hself, "wavheadlock", 11, 0);
         if(tmpsv != NULL) {
-            wh = (LPWAVEHDR) SvIV(*tmpsv);
+            wh = INT2PTR(LPWAVEHDR, SvIV(*tmpsv));
             if(wh->dwFlags & WHDR_PREPARED) {
                 RETVAL = waveOutUnprepareHeader(wo, wh, sizeof(wh));
             }
@@ -956,19 +959,19 @@ CODE:
         }
         tmpsv = hv_fetch(hself, "wavhead", 7, 0);
         if(tmpsv != NULL) {
-            hg = (HGLOBAL) SvIV(*tmpsv);
+            hg = INT2PTR(HGLOBAL, SvIV(*tmpsv));
             GlobalFree(hg);
             hv_delete(hself, "wavhead", 7, 0);
         }
         tmpsv = hv_fetch(hself, "wavdatalock", 11, 0);
         if(tmpsv != NULL) {
-            hg = (HGLOBAL) SvIV(*tmpsv);
+            hg = INT2PTR(HGLOBAL, SvIV(*tmpsv));
             GlobalUnlock(hg);
             hv_delete(hself, "wavdatalock", 11, 0);
         }
         tmpsv = hv_fetch(hself, "wavdata", 7, 0);
         if(tmpsv != NULL) {
-            hg = (HGLOBAL) SvIV(*tmpsv);
+            hg = INT2PTR(HGLOBAL, SvIV(*tmpsv));
             GlobalFree(hg);
             hv_delete(hself, "wavdata", 7, 0);
         }        
@@ -997,12 +1000,12 @@ PPCODE:
     hself = (HV*) SvRV(self);
     tmpsv = hv_fetch(hself, "mmio", 4, 0);
     if(tmpsv != NULL) {
-        mmio = (HMMIO) SvIV(*tmpsv);
+        mmio = INT2PTR(HMMIO, SvIV(*tmpsv));
         mmioClose(mmio, 0);
     }
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
         waveOutClose(wo);
     }   
     mmio = mmioOpen((LPSTR) filename, NULL, MMIO_READ);
@@ -1027,8 +1030,8 @@ PPCODE:
                     &wo, 
                     (UINT) id, 
                     &wavfmt, 
-                    NULL, 
-                    NULL, 
+                    0, 
+                    0, 
                     CALLBACK_NULL /* | WAVE_ALLOWSYNC | WAVE_FORMAT_DIRECT */
                 );
                 if(mmr == MMSYSERR_NOERROR) {
@@ -1068,7 +1071,7 @@ PPCODE:
     hself = (HV*)SvRV(self);
     hmmio = hv_fetch(hself, "mmio", 4, 0);
     if(hmmio != NULL) {
-        mmio = (HMMIO) SvIV(*hmmio);
+        mmio = INT2PTR(HMMIO, SvIV(*hmmio));
         mmioSeek(mmio, 0, SEEK_SET);
         mmchunk.fccType = mmioFOURCC('W', 'A', 'V', 'E'); 
         if (mmioDescend(mmio, &mmchunk, NULL, MMIO_FINDRIFF)) {
@@ -1106,7 +1109,7 @@ PPCODE:
                 wh->dwFlags = 0;
                 hwo = hv_fetch(hself, "handle", 6, 0);
                 if(hwo != NULL) {
-                    wo = (HWAVEOUT) SvIV(*hwo);
+                    wo = INT2PTR(HWAVEOUT, SvIV(*hwo));
                     mmr = waveOutPrepareHeader(wo, wh, sizeof(WAVEHDR));
                     if(mmr == MMSYSERR_NOERROR) {
                         mmr = waveOutWrite(wo, wh, sizeof(WAVEHDR));
@@ -1141,7 +1144,7 @@ PPCODE:
     hself = (HV*)SvRV(self);
     wavhead = hv_fetch(hself, "wavheadlock", 11, 0);
     if(wavhead != NULL) {
-        wh = (LPWAVEHDR) SvIV(*wavhead);
+        wh = INT2PTR(LPWAVEHDR, SvIV(*wavhead));
         if(wh->dwFlags & WHDR_DONE) {
             XSRETURN_IV(1);
         } else {
@@ -1155,7 +1158,6 @@ PPCODE:
 void
 Position(self)
     SV* self
-    int type
 PPCODE:
     HV* hself;
     SV** handle;
@@ -1167,7 +1169,7 @@ PPCODE:
     hself = (HV*)SvRV(self);
     handle = hv_fetch(hself, "handle", 6, 0);
     if(handle != NULL) {
-        wo = (HWAVEOUT) SvIV(*handle);
+        wo = INT2PTR(HWAVEOUT, SvIV(*handle));
         mmt.wType = (UINT) ttype;
         mmr = waveOutGetPosition(wo, &mmt, sizeof(MMTIME));
         if(mmr == MMSYSERR_NOERROR) {
@@ -1200,7 +1202,7 @@ CODE:
     hself = (HV*)SvRV(self);
     handle = hv_fetch(hself, "handle", 6, 0);
     if(handle != NULL) {
-        RETVAL = waveOutPause((HWAVEOUT)SvIV(*handle));
+        RETVAL = waveOutPause(INT2PTR(HWAVEOUT, SvIV(*handle)));
         WaveOutCheckError(RETVAL);
     } else {
         PerlSetError(-1, "Device is not opened");
@@ -1219,7 +1221,7 @@ CODE:
     hself = (HV*)SvRV(self);
     handle = hv_fetch(hself, "handle", 6, 0);
     if(handle != NULL) {
-        RETVAL = waveOutRestart((HWAVEOUT)SvIV(*handle));
+        RETVAL = waveOutRestart(INT2PTR(HWAVEOUT, SvIV(*handle)));
         WaveOutCheckError(RETVAL);
     } else {
         PerlSetError(-1, "Device is not opened");
@@ -1238,7 +1240,7 @@ CODE:
     hself = (HV*)SvRV(self);
     handle = hv_fetch(hself, "handle", 6, 0);
     if(handle != NULL) {
-        RETVAL = waveOutReset((HWAVEOUT)SvIV(*handle));
+        RETVAL = waveOutReset(INT2PTR(HWAVEOUT, SvIV(*handle)));
         WaveOutCheckError(RETVAL);
     } else {
         PerlSetError(-1, "Device is not opened");
@@ -1259,7 +1261,7 @@ PPCODE:
     hself = (HV*)SvRV(self);
     handle = hv_fetch(hself, "handle", 6, 0);    
     if(handle != NULL) {
-        wo = (HWAVEOUT)SvIV(*handle);
+        wo = INT2PTR(HWAVEOUT, SvIV(*handle));
         switch(items) {
         case 0:
             mmr = waveOutGetVolume(wo, &volume);
@@ -1313,7 +1315,7 @@ CODE:
     hself = (HV*)SvRV(self);
     tmpsv = hv_fetch(hself, "mmio", 4, 0);
     if(tmpsv != NULL) {
-        mmio = (HMMIO) SvIV(*tmpsv);
+        mmio = INT2PTR(HMMIO, SvIV(*tmpsv));
         RETVAL = mmioClose(mmio, 0);
         hv_delete(hself, "mmio", 4, 0);
     } else {
@@ -1337,7 +1339,7 @@ CODE:
     hself = (HV*)SvRV(self);
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
         if(items == 1) {
             mmr = waveOutGetPitch(wo, &dwPitch);
             WaveOutCheckError(mmr);
@@ -1367,7 +1369,7 @@ CODE:
     hself = (HV*)SvRV(self);
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
         if(items == 1) {
             mmr = waveOutGetPlaybackRate(wo, &dwRate);
             WaveOutCheckError(mmr);
@@ -1412,37 +1414,39 @@ PPCODE:
     LPWAVEHDR wh;
     MMRESULT mmr;
     hself = (HV*)SvRV(self);
-    tmpsv = hv_fetch(hself, "wavheadlock", 11, 0);
-    if(tmpsv != NULL) {
-        wh = (LPWAVEHDR) SvIV(*tmpsv);
-        if(wh->dwFlags & WHDR_PREPARED) {
-            mmr = waveOutUnprepareHeader(wo, wh, sizeof(wh));
-        }
-        GlobalUnlock((HGLOBAL) wh);
-    }
-    tmpsv = hv_fetch(hself, "wavhead", 7, 0);
-    if(tmpsv != NULL) {
-        hg = (HGLOBAL) SvIV(*tmpsv);
-        GlobalFree(hg);
-    }
-    tmpsv = hv_fetch(hself, "wavdatalock", 11, 0);
-    if(tmpsv != NULL) {
-        hg = (HGLOBAL) SvIV(*tmpsv);
-        GlobalUnlock(hg);
-    }
-    tmpsv = hv_fetch(hself, "wavdata", 7, 0);
-    if(tmpsv != NULL) {
-        hg = (HGLOBAL) SvIV(*tmpsv);
-        GlobalFree(hg);
-    }
-    tmpsv = hv_fetch(hself, "mmio", 4, 0);
-    if(tmpsv != NULL) {
-        mmio = (HMMIO) SvIV(*tmpsv);
-        mmioClose(mmio, 0);
-    }
     tmpsv = hv_fetch(hself, "handle", 6, 0);
     if(tmpsv != NULL) {
-        wo = (HWAVEOUT) SvIV(*tmpsv);
+        wo = INT2PTR(HWAVEOUT, SvIV(*tmpsv));
+        tmpsv = hv_fetch(hself, "wavheadlock", 11, 0);
+        if(tmpsv != NULL) {
+            wh = INT2PTR(LPWAVEHDR, SvIV(*tmpsv));
+            if(wh->dwFlags & WHDR_PREPARED) {
+                mmr = waveOutUnprepareHeader(wo, wh, sizeof(wh));
+            }
+            GlobalUnlock((HGLOBAL) wh);
+        }
+        tmpsv = hv_fetch(hself, "wavhead", 7, 0);
+        if(tmpsv != NULL) {
+            hg = INT2PTR(HGLOBAL, SvIV(*tmpsv));
+            GlobalFree(hg);
+        }
+        tmpsv = hv_fetch(hself, "wavdatalock", 11, 0);
+        if(tmpsv != NULL) {
+            hg = INT2PTR(HGLOBAL, SvIV(*tmpsv));
+            GlobalUnlock(hg);
+        }
+        tmpsv = hv_fetch(hself, "wavdata", 7, 0);
+        if(tmpsv != NULL) {
+            hg = INT2PTR(HGLOBAL, SvIV(*tmpsv));
+            GlobalFree(hg);
+        }        
+	tmpsv = hv_fetch(hself, "mmio", 4, 0);
+	if(tmpsv != NULL) {
+	    mmio = INT2PTR(HMMIO, SvIV(*tmpsv));
+	    mmioClose(mmio, 0);
+	}
         waveOutClose(wo);
+    } else {
+	XSRETURN_NO;
     }
     XSRETURN_YES;
