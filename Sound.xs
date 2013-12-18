@@ -4,7 +4,7 @@
 # Win32::Sound - An extension to play with Windows sounds
 # 
 # Author: Aldo Calpini <dada@perl.it>
-# Version: 0.51
+# Version: 0.52
 # Info:
 #       http://dada.perl.it/
 #       https://github.com/dada/win32-sound
@@ -303,7 +303,7 @@ MODULE = Win32::Sound       PACKAGE = Win32::Sound
 PROTOTYPES: DISABLE
 
 long
-constant(name,arg)
+_constant(name,arg)
     char *name
     int arg
 CODE:
@@ -380,27 +380,6 @@ PPCODE:
         }
         break;
     }
-
-char *
-DeviceName()
-CODE:
-    WAVEOUTCAPS woc;
-    MMRESULT mmr;
-    ZeroMemory(&woc, sizeof(WAVEOUTCAPS));
-    mmr = waveOutGetDevCaps(
-        (UINT) WAVE_MAPPER, 
-        &woc, 
-        sizeof(WAVEOUTCAPS)
-    );
-    if(mmr == MMSYSERR_NOERROR) {
-        RETVAL = (char *) woc.szPname;
-    } else {
-        WaveOutCheckError(mmr);
-        RETVAL = NULL;
-    }
-OUTPUT:
-    RETVAL
-
 
 void
 Format(filename)
@@ -895,7 +874,7 @@ CODE:
         if(tmpsv != NULL) {
             buffer = INT2PTR(char _huge*, SvIV(*tmpsv));
             bufferlen = (LONG) GlobalSize((HGLOBAL) buffer);
-            printf("XS(WaveOut::Save): loaded bufferlen=%ld\n", bufferlen);
+            # printf("XS(WaveOut::Save): loaded bufferlen=%ld\n", bufferlen);
         } else {
             PerlSetError(-1, "No data loaded");
             RETVAL = -1;

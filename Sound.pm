@@ -3,7 +3,7 @@
 # Win32::Sound - An extension to play with Windows sounds
 # 
 # Author: Aldo Calpini <dada@perl.it>
-# Version: 0.51
+# Version: 0.52
 # Info:
 #       http://dada.perl.it/
 #       https://github.com/dada/win32-sound
@@ -37,7 +37,7 @@ sub AUTOLOAD {
     ($constname = $AUTOLOAD) =~ s/.*:://;
     #reset $! to zero to reset any current errors.
     local $! = 0;
-    my $val = constant($constname, @_ ? $_[0] : 0);
+    my $val = _constant($constname, @_ ? $_[0] : 0);
     if ($! != 0) {
 
     # [dada] This results in an ugly Autoloader error
@@ -63,14 +63,12 @@ sub AUTOLOAD {
 #######################################################################
 # STATIC OBJECT PROPERTIES
 #
-$VERSION="0.51"; 
+$VERSION="0.52"; 
 undef unless $VERSION; # [dada] to avoid "possible typo" warning
 
 #######################################################################
 # METHODS
 #
-
-sub Version { $VERSION }
 
 sub Volume {
     my(@in) = @_;
@@ -407,6 +405,14 @@ audible you can either C<Open()> a wave file
 or C<Load()> binary data to the soundcard
 and then C<Write()> it.
 
+Note that by default Win32::Sound::WaveOut will use
+the first soundcard (eg. WAVEOUT0). If you want
+to use a different one, you have to do the following:
+
+    my $WAV = Win32::WaveOut->new();
+    $WAV->CloseDevice();
+    $WAV->OpenDevice(1); # open WAVEOUT1
+
 =item Close()
 
 Closes the wave file currently opened.
@@ -440,11 +446,23 @@ must contain 176400 bytes (44100 * 4).
 
 Opens the specified wave FILE.
 
-=item OpenDevice()
+=item OpenDevice([ID])
 
 Opens the wave output device with the
 current sound format (not needed unless
 you used C<CloseDevice()>).
+
+By default it will open the first device
+(eg. WAVEOUT0). If you have multiple soundcards,
+you can specify which one to use by adding
+the numeric ID of the (WAVEOUT) device. 
+
+Example:
+
+    $WAV->OpenDevice(1); # opens WAVEOUT1
+
+See also L<Win32::Sound::Devices()> to list
+the currently available soundcards.
 
 =item Pause()
 
@@ -558,7 +576,7 @@ wave at 440Hz and saves it in F<sinus.wav>:
 
 =head1 VERSION
 
-Win32::Sound version 0.51, 10 Apr 2012.
+Win32::Sound version 0.52, 18 Dec 2013.
 
 =head1 AUTHOR
 
